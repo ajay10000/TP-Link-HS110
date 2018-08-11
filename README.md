@@ -17,4 +17,6 @@ If any other command is used, the switch will respond directly and show the resu
 
 This version also supports text logging.
 
+v0.5 2018/08/11 Supports sending the relay (switch) status to Domoticz.
+
 Please note: I'm not a Python programmer, so if you find anything that isn't OK, please let me know.  Thanks!
