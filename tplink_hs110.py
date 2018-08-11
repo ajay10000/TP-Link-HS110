@@ -6,7 +6,7 @@
 # by Lubomir Stroetmann
 # Copyright 2016 softScheck GmbH
 #
-# Modified by ajay100, 2018
+# Modified by Andrew P (ajay10000), 2018
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ import socket, argparse, json, urllib, urllib2, logging, os, time, datetime
 from struct import pack
 
 # Begin user editable variables
-version = 0.4
+version = 0.5
 logger_name = "hs110-1"  #used for log file names, messages, etc
 debug_level="INFO"  # debug options DEBUG, INFO, WARNING, ERROR, CRITICAL
 delay_time = 15 #update time in seconds
