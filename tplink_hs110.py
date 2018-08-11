@@ -35,14 +35,14 @@ debug_level="INFO"  # debug options DEBUG, INFO, WARNING, ERROR, CRITICAL
 delay_time = 15 #update time in seconds
 domain="http://rpi3:8080/"
 base_url = domain + "json.htm?type=command&param=udevice&nvalue=0"
-monitor_list = ["voltage","current","kwhr"]
-domoticz_idx = [90,91,93]
+monitor_list = ["voltage","current","power","usage"]
+domoticz_idx = [90,91,108,93]
 hs110_ip = "192.168.25.60"
 text_logging = True
 track_state = True
 hs110_switch_idx = 107
-datafile_columns = "Time,Voltage,Current,Power"
-dailyfile_columns = "Date-Time,kWHr"
+datafile_columns = "Time,Voltage,Current,Power (W),Usage (kWHr)"
+dailyfile_columns = "Date-Time,Usage (kWHr)"
 # End user editable variables
 
 log_path = os.path.dirname(os.path.realpath(__file__)) 
@@ -152,19 +152,19 @@ class HS110:
         # Send the json string
         urllib2.urlopen(full_url)
       else:
-        voltage = float(json_data['emeter']['get_realtime']['voltage_mv']) / 1000
-        current = float(json_data['emeter']['get_realtime']['current_ma']) / 1000
-        power = float(json_data['emeter']['get_realtime']['power_mw']) / 1000
-        kwhr = float(json_data['emeter']['get_realtime']['total_wh']) / 1000
+        voltage = round(float(json_data['emeter']['get_realtime']['voltage_mv']) / 1000,2)
+        current = round(float(json_data['emeter']['get_realtime']['current_ma']) / 1000,2)
+        power = round(float(json_data['emeter']['get_realtime']['power_mw']) / 1000,2)
+        usage = round(float(json_data['emeter']['get_realtime']['total_wh']) / 1000,3)
     
         for i in range(0,len(domoticz_idx)): # range is 0 based
           if i < len(domoticz_idx) - 1:
             logger.debug("IDX: {}, Item: {}, Value: {}".format(domoticz_idx[i],monitor_list[i],eval(monitor_list[i])))
-            full_url = base_url + "&idx={}&svalue={:.2f}".format(domoticz_idx[i],eval(monitor_list[i]))
+            full_url = base_url + "&idx={}&svalue={}".format(domoticz_idx[i],eval(monitor_list[i]))
           else:
             # virtual sensor with sensor type Electric (Instant+Counter)
-            logger.debug("IDX: {}, Items: {}, Values: {};{}".format(domoticz_idx[i],"Power, kWhr",power,kwhr))
-            full_url = base_url + "&idx={}&svalue={:.2f};{:.2f}".format(domoticz_idx[i],power,kwhr)
+            logger.debug("IDX: {}, Items: {}, Values: {};{}".format(domoticz_idx[i],"Power (W), Usage (kWhr)",power,usage))
+            full_url = base_url + "&idx={}&svalue={};{}".format(domoticz_idx[i],power,usage * 1000)
           logger.debug("URL: {}".format(full_url))
           # Send the json string
           urllib2.urlopen(full_url)
@@ -177,12 +177,12 @@ class HS110:
     
     # write out the text file logs if required.  Don't log state.  
     if text_logging and (not self.read_state):      
-      out = time.strftime("%Y-%m-%d %H:%M") + "," + str(voltage) + "," + str(current) + "," + str(power) + "\n"
+      out = time.strftime("%Y-%m-%d %H:%M:%S") + "," + str(voltage) + "," + str(current) + "," + str(power) + "," + str(usage) + "\n"
       self.write_file(datafile, "a", out)
       
       if datetime.datetime.now() > self.next_daily_time:
         self.next_daily_time = datetime.datetime.combine(datetime.date.today() + datetime.timedelta(days=1),datetime.time(23,55,0))
-        out = time.strftime("%Y-%m-%d %H:%M") + "," + str(kwhr) + "\n"
+        out = time.strftime("%Y-%m-%d %H:%M:%S") + "," + str(kwhr) + "\n"
         self.write_file(dailyfile, "a", out)
 
   # Send command to smart switch and receive reply
@@ -228,7 +228,7 @@ class HS110:
       print "Received: ", received_data
       # write out the text file logs if required  
       if text_logging:      
-        out = time.strftime("%Y-%m-%d %H:%M") + ",Command: " + hs_cmd + ",,\n"
+        out = time.strftime("%Y-%m-%d %H:%M:%S") + ",Command: " + hs_cmd + ",,\n"
         self.write_file(datafile, "a", out)
       raise SystemExit(0)
 
