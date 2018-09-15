@@ -1,5 +1,5 @@
 # TP-Link-HS110
-TP-Link Wi-Fi Smart Plug Protocol Client (Python 2.7)
+TP-Link Wi-Fi Smart Plug Protocol Client (Python 2.7 and Python3)
 
 This is a fork of Softscheck's brilliant job of reverse engineering the TP-Link HS100/110 smart switches: https://www.softscheck.com/en/reverse-engineering-tp-link-hs110/.  
 
@@ -18,5 +18,6 @@ If any other command is used, the switch will respond directly and show the resu
 This version also supports text logging.
 
 v0.5 2018/08/11 Supports sending the relay (switch) status to Domoticz.
+v3.5 2018/09/15 Python3 parallel version
 
 Please note: I'm not a Python programmer, so if you find anything that isn't OK, please let me know.  Thanks!
