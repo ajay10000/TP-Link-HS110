@@ -19,6 +19,6 @@ This version also supports text logging.
 
 v0.5 2018/08/11 Supports sending the relay (switch) status to Domoticz.
 
-v3.5 2018/09/15 Python3 parallel version, with thanks to https://github.com/GadgetReactor/pyHS100/blob/master/pyHS100/protocol.py
+v3.5 2018/09/15 Python3 parallel version, with thanks to https://github.com/GadgetReactor/pyHS100/blob/master/pyHS100/protocol.py for showing how to convert the encrypt/decrypt definitions.
 
 Please note: I'm not a Python programmer, so if you find anything that isn't OK, please let me know.  Thanks!
