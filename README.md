@@ -5,10 +5,9 @@ This is a fork of Softscheck's brilliant job of reverse engineering the TP-Link 
 
 This version will send the energy information from a HS110 to Domoticz at set intervals.  i.e. you don't need CRON to do this.  
 
-You can also send the other direct commands to the HS110 (documented in the code).  All results can be logged to a text file.
+You can also send direct commands to the HS110 (documented in the code).  All results can be logged to a text file.
 
-Example from command line:
-python tplink_hs110.py -c energy
+Example logs from command line: python tplink_hs110.py -c energy
 Sent:      {"emeter":{"get_realtime":{}}}
 Received:  {"emeter":{"get_realtime":{"voltage_mv":242630,"current_ma":19,"power_mw":1223,"total_wh":184,"err_code":0}}}
 
