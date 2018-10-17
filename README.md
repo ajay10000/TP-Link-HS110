@@ -21,4 +21,7 @@ v0.5 2018/08/11 Supports sending the relay (switch) status to Domoticz.
 
 v3.5 2018/09/15 Python3 parallel version, with thanks to https://github.com/GadgetReactor/pyHS100/blob/master/pyHS100/protocol.py for showing how to convert the encrypt/decrypt definitions.
 
-Please note: I'm not a Python programmer, so if you find anything that isn't OK, please let me know.  Thanks!
+NOTE: If you are getting a KeyError: 'voltage_mv', then your HS110 may be returning volts, amps and watts rather than millivolts, milliamps and milliwatts.  You will see it in the logs, something like this:
+2018-10-02 17:49:29,433:__main__:DEBUG:json_data: {'emeter': {'get_realtime': {'voltage': [b]230.421503[/b], 'power': 49.65685, 'current': 0.414566, 'total': 2.304, 'err_code': 0}}}  Have a look at this post https://www.domoticz.com/forum/viewtopic.php?p=194420&sid=add7294afd026954ab0edac00a372730#p193180 for values to change.
+
+Another note: I'm not a Python programmer, so if you find anything that isn't OK, please let me know.  Thanks!
