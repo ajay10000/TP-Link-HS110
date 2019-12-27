@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2
 #
 # TP-Link Wi-Fi Smart Plug Protocol Client
 # For use with TP-Link HS-100 or HS-110
@@ -7,7 +7,6 @@
 # Copyright 2016 softScheck GmbH
 #
 # Modified by Andrew P (ajay10000), 2018
-# Python 3 version
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,10 +25,11 @@
 # Sent:      {"emeter":{"get_realtime":{}}}
 # Received:  {"emeter":{"get_realtime":{"voltage_mv":242630,"current_ma":19,"power_mw":1223,"total_wh":184,"err_code":0}}}
 
-import socket, argparse, json, urllib, urllib.request, logging, os, time, datetime, struct
+import socket, argparse, json, urllib, urllib2, logging, os, time, datetime
+from struct import pack
 
 # Begin user editable variables
-version = 3.5
+version = 0.5
 logger_name = "hs110-1"  #used for log file names, messages, etc
 debug_level="INFO"  # debug options DEBUG, INFO, WARNING, ERROR, CRITICAL
 delay_time = 15 #update time in seconds
@@ -41,7 +41,6 @@ hs110_ip = "192.168.25.60"
 text_logging = True
 track_state = True
 hs110_switch_idx = 107
-encoding = "utf-8"  # latin-1
 datafile_columns = "Time,Voltage,Current,Power (W),Usage (kWHr)"
 dailyfile_columns = "Date-Time,Usage (kWHr)"
 # End user editable variables
@@ -116,24 +115,21 @@ class HS110:
   # XOR Autokey Cipher with starting key = 171
   def encrypt(self, string):
     key = 171
-    plainbytes = string.encode()
-    logger.debug("Encoded string: {}".format(plainbytes))
-    buffer = bytearray(struct.pack(">I", len(plainbytes)))
-    for plainbyte in plainbytes:
-      cipherbyte = key ^ plainbyte
-      key = cipherbyte
-      buffer.append(cipherbyte)
-    return bytes(buffer)
+    result = pack(">I", len(string))
+    for i in string:
+      a = key ^ ord(i)
+      key = a
+      result += chr(a)
+    return result
 
   def decrypt(self, string):
     key = 171
-    buffer = []
-    for cipherbyte in string:
-      plainbyte = key ^ cipherbyte
-      key = cipherbyte
-      buffer.append(plainbyte)
-    plaintext = bytes(buffer)
-    return plaintext.decode()
+    result = ""
+    for i in string:
+      a = key ^ ord(i)
+      key = ord(i)
+      result += chr(a)
+    return result
 
   # Generic file writing function
   def write_file(self,file_name,write_type,text):
@@ -148,18 +144,13 @@ class HS110:
   # Send json to app such as domoticz if requested in command (using "energy" or "state")
   def send_json(self,received_data):
     json_data = json.loads(received_data)
-    logger.debug("json_data: {}".format(json_data))
     try:
       if self.read_state:
-        # For getting the switch state only
         state = json_data['system']['get_sysinfo']['relay_state']
         full_url = domain + "json.htm?type=command&param=udevice&idx={}&nvalue={}".format(hs110_switch_idx,state)
         logger.debug("URL: {}".format(full_url))
         # Send the json string
-        req = urllib.request.Request(full_url)
-        with urllib.request.urlopen(req) as response:
-          result = response.read()
-        logger.debug("Logger response: {}".format(result))
+        urllib2.urlopen(full_url)
       else:
         voltage = round(float(json_data['emeter']['get_realtime']['voltage_mv']) / 1000,2)
         current = round(float(json_data['emeter']['get_realtime']['current_ma']) / 1000,2)
@@ -176,15 +167,12 @@ class HS110:
             full_url = base_url + "&idx={}&svalue={};{}".format(domoticz_idx[i],power,usage * 1000)
           logger.debug("URL: {}".format(full_url))
           # Send the json string
-          req = urllib.request.Request(full_url)
-          with urllib.request.urlopen(req) as response:
-            result = response.read()
-          logger.debug("Logger response: {}".format(result))
+          urllib2.urlopen(full_url)
         
-    except urllib.error.HTTPError as e:
+    except urllib2.HTTPError as e:
       # Error checking to prevent crashing on bad requests
       logger.error("HTTP error({}): {}".format(e.errno, e.strerror))
-    except urllib.error.URLError as e:
+    except urllib2.URLError as e:
       logger.error("URL error({}): {}".format(e.errno, e.strerror))
     
     # write out the text file logs if required.  Don't log state.  
@@ -194,7 +182,7 @@ class HS110:
       
       if datetime.datetime.now() > self.next_daily_time:
         self.next_daily_time = datetime.datetime.combine(datetime.date.today() + datetime.timedelta(days=1),datetime.time(23,55,0))
-        out = time.strftime("%Y-%m-%d %H:%M:%S") + "," + str(usage) + "\n"
+        out = time.strftime("%Y-%m-%d %H:%M:%S") + "," + str(kwhr) + "\n"
         self.write_file(dailyfile, "a", out)
 
   # Send command to smart switch and receive reply
@@ -211,11 +199,9 @@ class HS110:
         self.read_state = False
         hs_cmd = self.cmd
       logger.debug("Command: {}".format(hs_cmd))
-      logger.debug("Encrypted Command: {}".format(self.encrypt(hs_cmd)))      
       sock_tcp.send(self.encrypt(hs_cmd))
       data = sock_tcp.recv(2048)
       sock_tcp.close()
-      logger.debug("data: {}".format(data))
       received_data = self.decrypt(data[4:])
       # Successful read, reset error_count
       self.error_count = 0
@@ -225,7 +211,7 @@ class HS110:
       logger.error("Could not connect to host {}:{} {} times".format(self.ip,str(self.port),self.error_count))
       # Allow for a few connection errors.
       if self.error_count > 10:
-        print("Could not connect to host " + self.ip + ":" + str(self.port) + " " + str(self.error_count) + " times") #debug
+        print "Could not connect to host " + self.ip + ":" + str(self.port) + " " + str(self.error_count) + " times"  #debug
         raise SystemExit(0)
       else:
         return   
@@ -234,12 +220,12 @@ class HS110:
     if "energy" in str(self.args) or "state" in str(self.args):
       logger.debug("Sent:     {}".format(hs_cmd))
       logger.debug("Received: {}".format(received_data))
-      if received_data:  # OR (received_data is not None):
+      if received_data is not None:
         self.send_json(received_data)
     else:
       # Direct command, so print to console and exit
-      print("Sent:     ", hs_cmd)
-      print("Received: ", received_data)
+      print "Sent:     ", hs_cmd
+      print "Received: ", received_data
       # write out the text file logs if required  
       if text_logging:      
         out = time.strftime("%Y-%m-%d %H:%M:%S") + ",Command: " + hs_cmd + ",,\n"
