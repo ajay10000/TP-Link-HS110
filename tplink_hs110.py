@@ -176,7 +176,7 @@ class HS110:
             full_url = base_url + "&idx={}&svalue={};{}".format(domoticz_idx[i],power,usage * 1000)
           logger.debug("URL: {}".format(full_url))
           # Send the json string
-          req = urllib.request.Request(full_url)
+          req = urllib.request.Request(full_url, data=None)
           with urllib.request.urlopen(req) as response:
             result = response.read()
           logger.debug("Logger response: {}".format(result))
