@@ -33,7 +33,7 @@ version = 3.5
 logger_name = "hs110-1"  #used for log file names, messages, etc
 debug_level="INFO"  # debug options DEBUG, INFO, WARNING, ERROR, CRITICAL
 delay_time = 15 #update time in seconds
-domain="http://rpi3:8080/"
+domain="http://rpi4:8080/"
 base_url = domain + "json.htm?type=command&param=udevice&nvalue=0"
 monitor_list = ["voltage","current","power","usage"]
 domoticz_idx = [90,91,108,93]
