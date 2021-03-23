@@ -26,18 +26,30 @@
 # Sent:      {"emeter":{"get_realtime":{}}}
 # Received:  {"emeter":{"get_realtime":{"voltage_mv":242630,"current_ma":19,"power_mw":1223,"total_wh":184,"err_code":0}}}
 
-import socket, argparse, json, urllib, urllib.request, logging, os, time, datetime, struct
+import socket, argparse, json, urllib, urllib.request, logging, os, time, datetime, struct, configparser
+
+# Get some variables outside this script
+config = configparser.ConfigParser()
+
+try:
+    f = open("config.cfg", 'rb')
+except OSError:
+    print("Could not open/read file: config.cfg")
+    sys.exit()
+
+with f:
+    config.read("config.cfg")
+    domain = config['DETAILS']['DOMAIN']
+    hs110_ip = config['DETAILS']['HS110_IP']
 
 # Begin user editable variables
 version = 3.5
 logger_name = "hs110-1"  #used for log file names, messages, etc
 debug_level="INFO"  # debug options DEBUG, INFO, WARNING, ERROR, CRITICAL
 delay_time = 15 #update time in seconds
-domain="http://rpi4:8080/"
 base_url = domain + "json.htm?type=command&param=udevice&nvalue=0"
 monitor_list = ["voltage","current","power","usage"]
 domoticz_idx = [90,91,108,93]
-hs110_ip = "192.168.25.60"
 text_logging = True
 track_state = True
 hs110_switch_idx = 107
@@ -46,7 +58,7 @@ datafile_columns = "Time,Voltage,Current,Power (W),Usage (kWHr)"
 dailyfile_columns = "Date-Time,Usage (kWHr)"
 # End user editable variables
 
-log_path = os.path.dirname(os.path.realpath(__file__)) 
+log_path = os.path.dirname(os.path.realpath(__file__))
 log_level = getattr(logging, debug_level.upper(), 10)
 logging.basicConfig(filename=log_path + "/" + logger_name + ".log", level=log_level, format="%(asctime)s:%(name)s:%(levelname)s:%(message)s")
 logger = logging.getLogger(__name__)
@@ -64,7 +76,7 @@ class HS110:
         self.write_file(datafile,"w",datafile_columns + "\n")
       if not os.path.isfile(dailyfile):
         self.write_file(dailyfile,"w",dailyfile_columns + "\n")
-      
+
     # Predefined Smart Plug Commands
     # For a full list of commands, consult tplink_commands.txt
     commands = {
@@ -84,7 +96,7 @@ class HS110:
         'reset'    : '{"system":{"reset":{"delay":1}}}',
         'energy'   : '{"emeter":{"get_realtime":{}}}'
     }
-   
+
     # Parse commandline arguments
     parser = argparse.ArgumentParser(description="TP-Link Wi-Fi Smart Plug Client v" + str(version))
     parser.add_argument("-t", "--target", metavar="<hostname>", help="Target hostname or IP address", type=self.validHostname)
@@ -103,7 +115,7 @@ class HS110:
       self.cmd = self.args.json
     else:
       self.cmd = commands[self.args.command]
-    
+
   # Check for valid hostname
   def validHostname(self, hostname):
     try:
@@ -165,7 +177,7 @@ class HS110:
         current = round(float(json_data['emeter']['get_realtime']['current_ma']) / 1000,2)
         power = round(float(json_data['emeter']['get_realtime']['power_mw']) / 1000,2)
         usage = round(float(json_data['emeter']['get_realtime']['total_wh']) / 1000,3)
-    
+
         for i in range(0,len(domoticz_idx)): # range is 0 based
           if i < len(domoticz_idx) - 1:
             logger.debug("IDX: {}, Item: {}, Value: {}".format(domoticz_idx[i],monitor_list[i],eval(monitor_list[i])))
@@ -180,18 +192,18 @@ class HS110:
           with urllib.request.urlopen(req) as response:
             result = response.read()
           logger.debug("Logger response: {}".format(result))
-        
+
     except urllib.error.HTTPError as e:
       # Error checking to prevent crashing on bad requests
       logger.error("HTTP error({}): {}".format(e.errno, e.strerror))
     except urllib.error.URLError as e:
       logger.error("URL error({}): {}".format(e.errno, e.strerror))
-    
-    # write out the text file logs if required.  Don't log state.  
-    if text_logging and (not self.read_state):      
+
+    # write out the text file logs if required.  Don't log state.
+    if text_logging and (not self.read_state):
       out = time.strftime("%Y-%m-%d %H:%M:%S") + "," + str(voltage) + "," + str(current) + "," + str(power) + "," + str(usage) + "\n"
       self.write_file(datafile, "a", out)
-      
+
       if datetime.datetime.now() > self.next_daily_time:
         self.next_daily_time = datetime.datetime.combine(datetime.date.today() + datetime.timedelta(days=1),datetime.time(23,55,0))
         out = time.strftime("%Y-%m-%d %H:%M:%S") + "," + str(usage) + "\n"
@@ -211,7 +223,7 @@ class HS110:
         self.read_state = False
         hs_cmd = self.cmd
       logger.debug("Command: {}".format(hs_cmd))
-      logger.debug("Encrypted Command: {}".format(self.encrypt(hs_cmd)))      
+      logger.debug("Encrypted Command: {}".format(self.encrypt(hs_cmd)))
       sock_tcp.send(self.encrypt(hs_cmd))
       data = sock_tcp.recv(2048)
       sock_tcp.close()
@@ -228,8 +240,8 @@ class HS110:
         print("Could not connect to host " + self.ip + ":" + str(self.port) + " " + str(self.error_count) + " times") #debug
         raise SystemExit(0)
       else:
-        return   
-    
+        return
+
     # json should be sent if command includes "energy" or "state"
     if "energy" in str(self.args) or "state" in str(self.args):
       logger.debug("Sent:     {}".format(hs_cmd))
@@ -240,8 +252,8 @@ class HS110:
       # Direct command, so print to console and exit
       print("Sent:     ", hs_cmd)
       print("Received: ", received_data)
-      # write out the text file logs if required  
-      if text_logging:      
+      # write out the text file logs if required
+      if text_logging:
         out = time.strftime("%Y-%m-%d %H:%M:%S") + ",Command: " + hs_cmd + ",,\n"
         self.write_file(datafile, "a", out)
       raise SystemExit(0)

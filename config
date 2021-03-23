@@ -1,0 +1,3 @@
+[DETAILS]
+HS110_IP = 1.2.3.4
+DOMAIN = http://rpi4:8080/
