@@ -28,16 +28,19 @@
 
 import socket, argparse, json, urllib, urllib.request, logging, os, time, datetime, struct, configparser
 
+# Get some variables outside this script
+config = configparser.ConfigParser()
+
 # Begin user editable variables
 version = 3.5
 logger_name = "hs110-1"  #used for log file names, messages, etc
 debug_level="INFO"  # debug options DEBUG, INFO, WARNING, ERROR, CRITICAL
 delay_time = 15 #update time in seconds
-domain="http://rpi4:8080/"
+domain = config['DETAILS']['DOMAIN']
 base_url = domain + "json.htm?type=command&param=udevice&nvalue=0"
 monitor_list = ["voltage","current","power","usage"]
 domoticz_idx = [90,91,108,93]
-hs110_ip = "192.168.25.60"
+hs110_ip = config['DETAILS']['HS110_IP']
 text_logging = True
 track_state = True
 hs110_switch_idx = 107
